@@ -1,0 +1,12 @@
+{
+  "name": "build-calculator",
+  "version": "1.0.0",
+  "description": "## Application Overview The Build Dashboard is a web-based application for manufacturing companies that helps production planners analyze bill of materials (BOM) data and inventory to determine production capacity. The application imports CSV files exported from NetSuite containing component information, inventory levels, and costs to calculate how many units of a product can be built with the current inventory and what additional components need to be ordered.",
+  "main": "buildCapacityCalculator.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Build Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <!-- Header -->
+            <div class="bg-blue-600 px-6 py-4 flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-white">Build Dashboard (CSV)</h1>
+                    <p class="text-blue-100">Manage your product build quantities and inventory</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-microscope text-white text-3xl"></i>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="p-6">
+                <!-- File Upload Section -->
+                <div class="mb-8 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">Upload BOM/Inventory Data</h2>
+                    <div class="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4">
+                        <div class="file-upload bg-white border-2 border-dashed border-gray-300 rounded-lg p-8 text-center w-full md:w-1/2">
+                            <i class="fas fa-file-upload text-4xl text-blue-500 mb-2"></i>
+                            <p class="text-gray-600 mb-4">Drag & drop your BOM CSV file here or click to browse</p>
+                            <button class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded transition duration-200">
+                                Select File
+                            </button>
+                            <input type="file" id="fileInput" class="file-upload-input" accept=".csv" />
+                        </div>
+                        <div class="bg-white p-4 rounded-lg border border-gray-200 w-full md:w-1/2">
+                            <h3 class="font-medium text-gray-700 mb-2">File Requirements</h3>
+                            <ul class="text-sm text-gray-600 space-y-1">
+                                <li class="flex items-start">
+                                    <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                    <span>CSV format with BOM components</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-check-circle text-green-500 mt-1 mr-2"></i>
+                                    <span>Required fields: Component Name, Level, Description, BoM Quantity per Assembly, On Hand, Average Cost, On Order, Minimum Quantity</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-2"></i>
+                                    <span>File size limit: 5MB</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-database text-blue-500 mt-1 mr-2"></i>
+                                    <span>Query for latest BOM data (customize to add Description and Avg Cost): <a href="https://768050.app.netsuite.com/app/accounting/transactions/inventory/billofmaterialsinquiry.nl?whence=#" target="_blank" class="text-blue-600 hover:underline">Get Latest BOM Data</a></span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div id="fileInfo" class="mt-4 hidden">
+                        <div class="flex items-center text-green-600">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            <span id="fileName" class="font-medium"></span>
+                            <span id="fileSize" class="text-sm text-gray-500 ml-2"></span>
+                        </div>
+                        <div class="progress-bar-container mt-2">
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div id="uploadProgress" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Controls -->
+				<div id="dashboardControls" class="hidden mb-8 bg-white p-4 rounded-lg border border-gray-200">
+					<h2 class="text-xl font-semibold mb-4 text-gray-800">Build Configuration</h2>
+					<div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+						<div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+							<label for="targetBuilds" class="block text-sm font-medium text-blue-700 mb-1">Build Qty <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="buildQty"></i></label>
+							<input type="number" id="targetBuilds" min="1" value="1" class="w-full px-3 py-2 border border-blue-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+						</div>
+						<div class="bg-green-50 p-4 rounded-lg border border-green-100">
+							<h3 class="text-sm font-medium text-green-700 mb-1">Build Capacity <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="buildCapacity"></i></h3>
+							<div class="flex items-center">
+								<div class="text-2xl font-bold text-green-800 mr-2" id="buildableCount">0</div>
+								<div class="text-sm text-green-600">products with current inventory</div>
+							</div>
+						</div>
+						<div class="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
+							<h3 class="text-sm font-medium text-yellow-700 mb-1">Total Build Capacity <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="totalBuildCapacity"></i></h3>
+							<div class="flex items-center">
+								<div class="text-2xl font-bold text-yellow-800 mr-2" id="totalBuildableCount">0</div>
+								<div class="text-sm text-yellow-600">products considering subassemblies</div>
+							</div>
+						</div>
+						<div class="bg-purple-50 p-4 rounded-lg border border-purple-100">
+							<h3 class="text-sm font-medium text-purple-700 mb-1">Future Capacity <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="futureCapacity"></i></h3>
+							<div class="flex items-center">
+								<div class="text-2xl font-bold text-purple-800 mr-2" id="futureBuildableCount">0</div>
+								<div class="text-sm text-purple-600">products after POs arrive</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+                
+                <div id="summaryCards" class="hidden grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Total Inventory Value <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="totalInventoryCost"></i></p>
+                                <p class="text-2xl font-semibold text-gray-800" id="totalInventoryCost">$0</p>
+                            </div>
+                            <div class="p-2 rounded-full bg-blue-100 text-blue-600">
+                                <i class="fas fa-dollar-sign"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Open Order Cost <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="openOrderCost"></i></p>
+                                <p class="text-2xl font-semibold text-gray-800" id="openOrderCost">$0</p>
+                            </div>
+                            <div class="p-2 rounded-full bg-green-100 text-green-600">
+                                <i class="fas fa-truck"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Additional Cost Needed <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="additionalCost"></i></p>
+                                <p class="text-2xl font-semibold text-gray-800" id="additionalCost">$0</p>
+                            </div>
+                            <div class="p-2 rounded-full bg-yellow-100 text-yellow-600">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Total Build Cost <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="totalBuildCost"></i></p>
+                                <p class="text-2xl font-semibold text-gray-800" id="totalBuildCost">$0</p>
+                            </div>
+                            <div class="p-2 rounded-full bg-purple-100 text-purple-600">
+                                <i class="fas fa-calculator"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BOM Table -->
+                <div id="bomTableContainer" class="hidden">
+                    <h2 class="text-xl font-semibold text-gray-800">Bill of Materials Analysis</h2>
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <button id="toggleBomView" class="mt-2 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"></button>
+                        </div>
+                        <div class="relative ml-auto">
+                            <input type="text" id="searchBom" placeholder="Search components..." class="pl-8 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white shadow rounded-lg border border-gray-200 overflow-hidden p-2">
+                        <div class="overflow-auto scrollbar-show" style="max-height: 500px;">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50 sticky top-0 z-10 shadow-sm" id="bomTableHeader">
+                                    <tr>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Component ID</th>
+                                        <th scope="col" id="bomLevelHeader" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">BOM Level</th>
+                                        <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Make/Buy</th>
+                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Qty per Parent <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="qtyPerParent"></i></th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">OH Inventory <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="ohInventory"></i></th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">On Order <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="onOrder"></i></th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Cost <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="unitCost"></i></th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Can Build <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="canBuild"></i></th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Future Build <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="futureBuildTable"></i></th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Net Qty Needed <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="netQtyNeeded"></i></th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Min. Order Qty <i class="fas fa-question-circle text-gray-400 ml-1"></i></th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Order Qty <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="orderQty"></i></th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Cost to Order <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="costToOrder"></i></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bomTableBody" class="bg-white divide-y divide-gray-200">
+                                    <!-- Table rows will be inserted here by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div id="chartsSection" class="hidden mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <h3 class="text-lg font-medium text-gray-800 mb-4">Inventory Status by Component <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="inventoryChart"></i></h3>
+                        <div class="h-64 relative">
+                            <canvas id="inventoryChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <h3 class="text-lg font-medium text-gray-800 mb-4">Cost Distribution <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="costChart"></i></h3>
+                        <div class="h-64 relative">
+                            <canvas id="costChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <p class="text-sm text-gray-500">Build Dashboard v1.1 (CSV)</p>
+                    <div class="flex space-x-4 mt-2 md:mt-0">
+                        <button id="exportBtn" class="hidden px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            <i class="fas fa-file-export mr-2"></i>Export Report
+                        </button>
+                        <button id="resetBtn" class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                            <i class="fas fa-redo mr-2"></i>Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="state.js"></script>
+    <script src="dom.js"></script>
+    <script src="utils.js"></script>
+    <script src="helpTexts.js"></script>
+    <script src="fileHandler.js"></script>
+    <script src="dataProcessor.js"></script>
+    <script src="uiUpdater.js"></script>
+    <script src="chartManager.js"></script>
+    <script src="script.js"></script>
+    <script src="eventHandlers.js"></script>
+</body>
+</html>

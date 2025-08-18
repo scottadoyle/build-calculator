@@ -1,0 +1,92 @@
+.file-upload {
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+}
+.file-upload-input {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin: 0;
+    padding: 0;
+    font-size: 20px;
+    cursor: pointer;
+    opacity: 0;
+    filter: alpha(opacity=0);
+}
+.progress-bar {
+    transition: width 0.3s ease;
+}
+.highlight {
+    animation: highlight 1.5s ease-out;
+}
+@keyframes highlight {
+    0% { background-color: rgba(255, 255, 0, 0.5); }
+    100% { background-color: transparent; }
+}
+.scrollbar-hide::-webkit-scrollbar {
+    display: none;
+}
+.scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* Custom scrollbar styles */
+.scrollbar-show::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+.scrollbar-show::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+.scrollbar-show::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+.scrollbar-show::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Fixed height for table rows */
+#bomTableBody tr {
+    height: 48px;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Help Icon Styling */
+.help-icon {
+    cursor: pointer;
+    color: #9ca3af; /* gray-400 */
+    font-size: 0.875rem; /* text-sm */
+    vertical-align: middle; /* Align with text */
+}
+.help-icon:hover {
+    color: #6b7280; /* gray-500 */
+}
+
+/* Help Popup Styling */
+.help-popup {
+    animation: fadeIn 0.2s ease-out;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.help-popup button {
+    padding: 0.25rem;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+}
+
+.help-popup button:hover {
+    background-color: #f3f4f6;
+}
