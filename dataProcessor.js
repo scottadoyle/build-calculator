@@ -73,6 +73,16 @@
             let totalAdditionalCost = 0;
             let totalBuildCostValue = 0;
 
+            // Create a flat BOM for cost calculation to avoid hierarchical compounding
+            const flatBom = dataProcessor.generateFlatBom(state.bomData);
+
+            // Calculate total build cost using flat BOM approach
+            flatBom.forEach(item => {
+                const grossRequirement = targetBuilds * item.qtyPerAssembly;
+                totalBuildCostValue += (grossRequirement * item.itemCost);
+            });
+
+            // Calculate hierarchical requirements for shortfall and ordering
             const parentNetQtyNeeded = { 0: targetBuilds };
 
             state.bomData.forEach(item => {
@@ -101,7 +111,6 @@
                 if (!item.isMakePart) {
                     totalAdditionalCost += item.costToOrder;
                 }
-                totalBuildCostValue += (item.grossRequirement * item.itemCost);
             });
 
             dataProcessor.calculateOverallMetricsHierarchical();
