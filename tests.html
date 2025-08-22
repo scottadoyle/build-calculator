@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOM Calculator Comprehensive Unit Tests</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .test-controls {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-suite { 
+            margin: 15px 0; 
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .suite-header {
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        .test-case { 
+            margin: 0; 
+            padding: 12px 15px; 
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .test-case:last-child { border-bottom: none; }
+        .pass { 
+            background-color: #d4edda; 
+            border-left: 4px solid #28a745; 
+        }
+        .fail { 
+            background-color: #f8d7da; 
+            border-left: 4px solid #dc3545; 
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+        }
+        .test-title { 
+            font-weight: bold; 
+            margin-bottom: 5px; 
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .test-details { 
+            font-family: 'Courier New', monospace; 
+            font-size: 12px; 
+            color: #666;
+            margin-top: 8px;
+        }
+        .summary { 
+            padding: 20px; 
+            background: white; 
+            border-radius: 8px;
+            margin-top: 20px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .summary.success { border-left: 6px solid #28a745; }
+        .summary.failure { border-left: 6px solid #dc3545; }
+        .summary.warning { border-left: 6px solid #ffc107; }
+        button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #005a87; }
+        button:disabled { background: #6c757d; cursor: not-allowed; }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: #e9ecef;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+        .stat-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #495057;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+        .icon { margin-right: 8px; }
+        .expand-toggle {
+            background: none;
+            border: none;
+            color: #007cba;
+            cursor: pointer;
+            font-size: 12px;
+            padding: 0;
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🧪 BOM Calculator Comprehensive Unit Tests</h1>
+        <p>Systematic testing framework for all JavaScript functions to identify and fix indented BOM calculation errors</p>
+    </div>
+
+    <div class="test-controls">
+        <h3>🎯 Test Controls</h3>
+        <div>
+            <button onclick="runAllTests()" id="runAllBtn">🚀 Run All Tests</button>
+            <button onclick="runUtilsTestsSingle()">🔧 Utils Functions</button>
+            <button onclick="runDataProcessorTestsSingle()">📊 Data Processor</button>
+            <button onclick="runBuildCapacityTestsSingle()">🏗️ Build Capacity</button>
+            <button onclick="runBomHierarchyTestsSingle()">🔗 BOM Hierarchy</button>
+            <button onclick="runErrorHandlingTestsSingle()">⚠️ Error Handling</button>
+            <button onclick="clearResults()">🗑️ Clear Results</button>
+        </div>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div id="real-time-status">Ready to run tests...</div>
+    </div>
+
+    <div id="test-results"></div>
+    <div id="test-summary" class="summary"></div>
+
+    <!-- Load all application modules -->
+    <script src="state.js"></script>
+    <script src="dom.js"></script>
+    <script src="utils.js"></script>
+    <script src="helpTexts.js"></script>
+    <script src="dataProcessor.js"></script>
+    <script src="buildCapacityCalculator.js"></script>
+    <script src="fileHandler.js"></script>
+    <script src="uiUpdater.js"></script>
+    <script src="chartManager.js"></script>
+    <script src="eventHandlers.js"></script>
+
+    <script>
+        // Comprehensive Test Framework
+        class TestFramework {
+            constructor() {
+                this.suites = {};
+                this.currentSuite = null;
+                this.totalTests = 0;
+                this.passedTests = 0;
+                this.failedTests = 0;
+                this.currentTest = 0;
+                this.startTime = null;
+            }
+
+            suite(name, testFn) {
+                this.currentSuite = name;
+                this.suites[name] = { tests: [], passed: 0, failed: 0 };
+                this.addSuiteHeader(name);
+                testFn();
+                this.currentSuite = null;
+            }
+
+            test(description, testFn) {
+                this.totalTests++;
+                this.currentTest++;
+                this.updateProgress();
+                this.updateStatus(`Running: ${description}`);
+
+                try {
+                    testFn();
+                    this.passedTests++;
+                    if (this.currentSuite) this.suites[this.currentSuite].passed++;
+                    this.addTestResult(description, 'pass', 'Test passed');
+                } catch (error) {
+                    this.failedTests++;
+                    if (this.currentSuite) this.suites[this.currentSuite].failed++;
+                    this.addTestResult(description, 'fail', error.message);
+                }
+            }
+
+            // Assertion Methods
+            assertEqual(actual, expected, message = '') {
+                if (actual !== expected) {
+                    throw new Error(`${message} Expected: ${expected}, Actual: ${actual}`);
+                }
+            }
+
+            assertNotEqual(actual, expected, message = '') {
+                if (actual === expected) {
+                    throw new Error(`${message} Expected values to be different, but both were: ${actual}`);
+                }
+            }
+
+            assertAlmostEqual(actual, expected, tolerance = 0.001, message = '') {
+                if (Math.abs(actual - expected) > tolerance) {
+                    throw new Error(`${message} Expected: ${expected} ±${tolerance}, Actual: ${actual}`);
+                }
+            }
+
+            assertArrayEqual(actual, expected, message = '') {
+                if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+                    throw new Error(`${message} Expected: ${JSON.stringify(expected)}, Actual: ${JSON.stringify(actual)}`);
+                }
+            }
+
+            assertTrue(condition, message = 'Expected true') {
+                if (!condition) {
+                    throw new Error(`${message}, got false`);
+                }
+            }
+
+            assertFalse(condition, message = 'Expected false') {
+                if (condition) {
+                    throw new Error(`${message}, got true`);
+                }
+            }
+
+            assertDefined(value, message = 'Expected defined value') {
+                if (value === undefined || value === null) {
+                    throw new Error(`${message}, got ${value}`);
+                }
+            }
+
+            assertUndefined(value, message = 'Expected undefined') {
+                if (value !== undefined) {
+                    throw new Error(`${message}, got ${value}`);
+                }
+            }
+
+            assertThrows(fn, message = 'Expected function to throw') {
+                try {
+                    fn();
+                    throw new Error(`${message}, but no error was thrown`);
+                } catch (e) {
+                    if (e.message.includes('Expected function to throw')) {
+                        throw e;
+                    }
+                }
+            }
+
+            assertType(value, expectedType, message = '') {
+                const actualType = typeof value;
+                if (actualType !== expectedType) {
+                    throw new Error(`${message} Expected type: ${expectedType}, Actual type: ${actualType}`);
+                }
+            }
+
+            assertGreaterThan(actual, expected, message = '') {
+                if (actual <= expected) {
+                    throw new Error(`${message} Expected ${actual} > ${expected}`);
+                }
+            }
+
+            assertLessThan(actual, expected, message = '') {
+                if (actual >= expected) {
+                    throw new Error(`${message} Expected ${actual} < ${expected}`);
+                }
+            }
+
+            // UI Methods
+            addSuiteHeader(name) {
+                const container = document.getElementById('test-results');
+                const suiteDiv = document.createElement('div');
+                suiteDiv.className = 'test-suite';
+                suiteDiv.id = `suite-${name.replace(/\s+/g, '-')}`;
+                suiteDiv.innerHTML = `<div class="suite-header">📁 ${name}</div>`;
+                container.appendChild(suiteDiv);
+            }
+
+            addTestResult(description, status, details) {
+                const suiteName = this.currentSuite ? this.currentSuite.replace(/\s+/g, '-') : 'general';
+                const suiteElement = document.getElementById(`suite-${suiteName}`);
+                
+                const testDiv = document.createElement('div');
+                testDiv.className = `test-case ${status}`;
+                
+                const icon = status === 'pass' ? '✅' : status === 'fail' ? '❌' : '⚠️';
+                const timestamp = new Date().toLocaleTimeString();
+                
+                testDiv.innerHTML = `
+                    <div class="test-title">
+                        <span><span class="icon">${icon}</span>${description}</span>
+                        <small>${timestamp}</small>
+                    </div>
+                    ${details !== 'Test passed' ? `<div class="test-details">${details}</div>` : ''}
+                `;
+                
+                if (suiteElement) {
+                    suiteElement.appendChild(testDiv);
+                } else {
+                    document.getElementById('test-results').appendChild(testDiv);
+                }
+            }
+
+            updateProgress() {
+                const percentage = this.totalTests > 0 ? (this.currentTest / this.totalTests) * 100 : 0;
+                document.getElementById('progressFill').style.width = `${percentage}%`;
+            }
+
+            updateStatus(message) {
+                document.getElementById('real-time-status').textContent = message;
+            }
+
+            renderSummary() {
+                const summary = document.getElementById('test-summary');
+                const endTime = Date.now();
+                const duration = this.startTime ? (endTime - this.startTime) / 1000 : 0;
+                const passRate = this.totalTests > 0 ? Math.round((this.passedTests / this.totalTests) * 100) : 0;
+                
+                let summaryClass = 'success';
+                if (this.failedTests > 0) {
+                    summaryClass = this.failedTests > this.passedTests ? 'failure' : 'warning';
+                }
+                
+                summary.className = `summary ${summaryClass}`;
+                summary.innerHTML = `
+                    <h2>📊 Test Summary</h2>
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-number">${this.totalTests}</div>
+                            <div class="stat-label">Total Tests</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${this.passedTests}</div>
+                            <div class="stat-label">Passed</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${this.failedTests}</div>
+                            <div class="stat-label">Failed</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${passRate}%</div>
+                            <div class="stat-label">Pass Rate</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number">${duration.toFixed(1)}s</div>
+                            <div class="stat-label">Duration</div>
+                        </div>
+                    </div>
+                    ${this.failedTests === 0 ? 
+                        '<p style="color: #28a745; font-weight: bold;">🎉 All tests passed! Your functions are working correctly.</p>' : 
+                        `<p style="color: #dc3545; font-weight: bold;">⚠️ ${this.failedTests} test(s) failed. Review the failures above to identify issues.</p>`
+                    }
+                `;
+                
+                this.updateStatus(`Completed: ${this.passedTests}/${this.totalTests} tests passed`);
+            }
+
+            clear() {
+                this.suites = {};
+                this.totalTests = 0;
+                this.passedTests = 0;
+                this.failedTests = 0;
+                this.currentTest = 0;
+                document.getElementById('test-results').innerHTML = '';
+                document.getElementById('test-summary').innerHTML = '';
+                document.getElementById('progressFill').style.width = '0%';
+                this.updateStatus('Ready to run tests...');
+            }
+        }
+
+        // Initialize test framework
+        const test = new TestFramework();
+
+        // Test Data Factory
+        function createTestBomItem(overrides = {}) {
+            return {
+                componentId: '12345',
+                componentName: 'Test Component',
+                description: 'Test Description',
+                bomLevel: 1,
+                qtyPerAssembly: 1,
+                onHand: 10,
+                onOrder: 5,
+                itemCost: 2.50,
+                minOrderQty: 1,
+                isMakePart: false,
+                ...overrides
+            };
+        }
+
+        function createSimpleBomData() {
+            return [
+                createTestBomItem({ 
+                    componentId: '07000030', 
+                    bomLevel: 1, 
+                    qtyPerAssembly: 1, 
+                    onHand: 16,
+                    itemCost: 591.72
+                }),
+                createTestBomItem({ 
+                    componentId: '15000174', 
+                    bomLevel: 2, 
+                    qtyPerAssembly: 11, 
+                    onHand: 733,
+                    itemCost: 3.22
+                })
+            ];
+        }
+
+        function createComplexBomData() {
+            return [
+                createTestBomItem({ componentId: 'TOP001', bomLevel: 0, isMakePart: true, onHand: 100 }),
+                createTestBomItem({ componentId: 'L1-001', bomLevel: 1, qtyPerAssembly: 2, onHand: 20, isMakePart: true }),
+                createTestBomItem({ componentId: 'L1-002', bomLevel: 1, qtyPerAssembly: 1, onHand: 5 }),
+                createTestBomItem({ componentId: 'L2-001', bomLevel: 2, qtyPerAssembly: 3, onHand: 30 }),
+                createTestBomItem({ componentId: 'L2-002', bomLevel: 2, qtyPerAssembly: 1, onHand: 100 }),
+                createTestBomItem({ componentId: 'L1-003', bomLevel: 1, qtyPerAssembly: 4, onHand: 40 })
+            ];
+        }
+
+        // Test Suites
+        function runUtilsTests() {
+            test.suite('Utils Functions', () => {
+                test.test('formatCurrency should format numbers as currency', () => {
+                    test.assertEqual(utils.formatCurrency(1234.56), '$1,235');
+                    test.assertEqual(utils.formatCurrency(0), '$0');
+                    test.assertEqual(utils.formatCurrency(-500.75), '$-501');
+                });
+
+                test.test('formatNumber should format numbers with commas', () => {
+                    test.assertEqual(utils.formatNumber(1234), '1,234');
+                    test.assertEqual(utils.formatNumber(0), '0');
+                    test.assertEqual(utils.formatNumber(Infinity), '∞');
+                });
+
+                test.test('sanitizeNumber should parse various number formats', () => {
+                    test.assertEqual(utils.sanitizeNumber('1,234.56'), 1234.56);
+                    test.assertEqual(utils.sanitizeNumber(''), 0);
+                    test.assertEqual(utils.sanitizeNumber(null), 0);
+                    test.assertEqual(utils.sanitizeNumber(undefined), 0);
+                    test.assertEqual(utils.sanitizeNumber('abc'), 0);
+                    test.assertEqual(utils.sanitizeNumber('123'), 123);
+                });
+
+                test.test('sanitizeInteger should convert to integers', () => {
+                    test.assertEqual(utils.sanitizeInteger('42'), 42);
+                    test.assertEqual(utils.sanitizeInteger(42.9), 42);
+                    test.assertEqual(utils.sanitizeInteger(''), 0);
+                    test.assertEqual(utils.sanitizeInteger('abc'), 0);
+                });
+
+                test.test('padLeadingZeros should pad strings correctly', () => {
+                    test.assertEqual(utils.padLeadingZeros(5, 3), '005');
+                    test.assertEqual(utils.padLeadingZeros('123', 2), '123');
+                    test.assertEqual(utils.padLeadingZeros(0, 4), '0000');
+                });
+
+                test.test('truncateText should truncate long strings', () => {
+                    test.assertEqual(utils.truncateText('Hello World', 5), 'Hello...');
+                    test.assertEqual(utils.truncateText('Hi', 10), 'Hi');
+                    test.assertEqual(utils.truncateText('', 5), '');
+                });
+
+                test.test('debounce should delay function execution', () => {
+                    let counter = 0;
+                    const debouncedFn = utils.debounce(() => counter++, 50);
+                    
+                    debouncedFn();
+                    debouncedFn();
+                    debouncedFn();
+                    
+                    test.assertEqual(counter, 0); // Should not have executed yet
+                    
+                    // Test will complete in next event loop
+                    setTimeout(() => {
+                        test.assertEqual(counter, 1); // Should have executed once
+                    }, 100);
+                });
+            });
+        }
+
+        function runDataProcessorTests() {
+            test.suite('Data Processor Functions', () => {
+                test.test('calculateBaseItemMetrics should compute build quantities', () => {
+                    const item = createTestBomItem({ qtyPerAssembly: 2, onHand: 10, onOrder: 6 });
+                    dataProcessor.calculateBaseItemMetrics(item);
+                    
+                    test.assertEqual(item.canBuild, 5); // 10/2 = 5
+                    test.assertEqual(item.futureBuild, 8); // (10+6)/2 = 8
+                });
+
+                test.test('calculateBaseItemMetrics should handle zero quantities', () => {
+                    const item = createTestBomItem({ qtyPerAssembly: 0, onHand: 10 });
+                    dataProcessor.calculateBaseItemMetrics(item);
+                    
+                    test.assertEqual(item.canBuild, 0);
+                    test.assertEqual(item.futureBuild, 0);
+                });
+
+                test.test('generateFlatBom should aggregate duplicate components', () => {
+                    const bomData = [
+                        createTestBomItem({ componentId: 'A', qtyPerAssembly: 5, isMakePart: false }),
+                        createTestBomItem({ componentId: 'B', qtyPerAssembly: 3, isMakePart: false }),
+                        createTestBomItem({ componentId: 'A', qtyPerAssembly: 2, isMakePart: false }),
+                        createTestBomItem({ componentId: 'C', qtyPerAssembly: 1, isMakePart: true })
+                    ];
+                    
+                    const flatBom = dataProcessor.generateFlatBom(bomData);
+                    
+                    test.assertEqual(flatBom.length, 2);
+                    
+                    const componentA = flatBom.find(item => item.componentId === 'A');
+                    test.assertEqual(componentA.qtyPerAssembly, 7); // 5 + 2
+                    
+                    const componentB = flatBom.find(item => item.componentId === 'B');
+                    test.assertEqual(componentB.qtyPerAssembly, 3);
+                    
+                    const componentC = flatBom.find(item => item.componentId === 'C');
+                    test.assertUndefined(componentC); // Make parts excluded
+                });
+
+                test.test('determineMakeBuyStatus should identify make parts', () => {
+                    const originalBomData = state.bomData;
+                    state.bomData = [
+                        createTestBomItem({ componentId: 'PARENT', bomLevel: 1 }),
+                        createTestBomItem({ componentId: 'CHILD', bomLevel: 2 })
+                    ];
+                    
+                    dataProcessor.determineMakeBuyStatus();
+                    test.assertTrue(state.bomData[0].isMakePart);
+                    test.assertFalse(state.bomData[1].isMakePart);
+                    
+                    state.bomData = originalBomData; // Restore
+                });
+            });
+        }
+
+        function runBuildCapacityTests() {
+            test.suite('Build Capacity Calculator', () => {
+                test.test('calculateMakePartCapacity should find limiting component', () => {
+                    const bomData = [
+                        createTestBomItem({ 
+                            componentId: 'PARENT', 
+                            bomLevel: 0, 
+                            qtyPerAssembly: 1,
+                            isMakePart: true 
+                        }),
+                        createTestBomItem({ 
+                            componentId: 'PARENTCHILD1', 
+                            bomLevel: 1, 
+                            qtyPerAssembly: 2, 
+                            onHand: 10
+                        }),
+                        createTestBomItem({ 
+                            componentId: 'PARENTCHILD2', 
+                            bomLevel: 1, 
+                            qtyPerAssembly: 3, 
+                            onHand: 15
+                        })
+                    ];
+
+                    const capacity = buildCapacityCalculator.calculateMakePartCapacity(bomData[0], bomData);
+                    test.assertEqual(capacity, 5); // min(10/2, 15/3) = min(5, 5) = 5
+                });
+
+                test.test('calculateTotalBuildCapacity should handle complex hierarchies', () => {
+                    const bomData = createComplexBomData();
+                    const capacity = buildCapacityCalculator.calculateTotalBuildCapacity(
+                        bomData, 
+                        buildCapacityCalculator.calculateMakePartCapacity
+                    );
+                    
+                    test.assertType(capacity, 'number');
+                    test.assertGreaterThan(capacity, -1); // Should be non-negative
+                });
+
+                test.test('calculateTotalBuildCapacity should return 0 for missing top-level', () => {
+                    const bomData = [createTestBomItem({ bomLevel: 1 })];
+                    const capacity = buildCapacityCalculator.calculateTotalBuildCapacity(
+                        bomData, 
+                        buildCapacityCalculator.calculateMakePartCapacity
+                    );
+                    
+                    test.assertEqual(capacity, 0);
+                });
+            });
+        }
+
+        function runBomHierarchyTests() {
+            test.suite('BOM Hierarchy & MRP Logic', () => {
+                test.test('Real CSV data: 07000030 and 15000174 parent-child relationship', () => {
+                    // Test with actual CSV structure that's failing
+                    const originalState = { ...state };
+                    state.bomData = [
+                        // Simulate the actual CSV structure around the problematic components
+                        createTestBomItem({ componentId: '17000528', bomLevel: 1, qtyPerAssembly: 1, onHand: 50 }),
+                        createTestBomItem({ componentId: '17000364', bomLevel: 1, qtyPerAssembly: 1, onHand: 64 }),
+                        createTestBomItem({ componentId: '15000257', bomLevel: 2, qtyPerAssembly: 2, onHand: 100 }),
+                        createTestBomItem({ componentId: '15000253', bomLevel: 2, qtyPerAssembly: 1, onHand: 50 }),
+                        createTestBomItem({ componentId: '17000059', bomLevel: 2, qtyPerAssembly: 1, onHand: 25 }),
+                        createTestBomItem({ componentId: '07000030', bomLevel: 1, qtyPerAssembly: 1, onHand: 16 }), // Index 5
+                        createTestBomItem({ componentId: '15000090', bomLevel: 2, qtyPerAssembly: 1, onHand: 233 }),
+                        createTestBomItem({ componentId: '15000091', bomLevel: 2, qtyPerAssembly: 1, onHand: 169 }),
+                        createTestBomItem({ componentId: '15000174', bomLevel: 2, qtyPerAssembly: 11, onHand: 733 }), // Index 8
+                        createTestBomItem({ componentId: '17000358', bomLevel: 1, qtyPerAssembly: 1, onHand: 30 })
+                    ];
+                    state.isDataProcessed = false;
+                    
+                    dataProcessor.processInitialData();
+                    dataProcessor.calculateBuildMetrics(100);
+                    
+                    const parent07000030 = state.bomData.find(item => item.componentId === '07000030');
+                    const child15000174 = state.bomData.find(item => item.componentId === '15000174');
+                    
+                    test.assertDefined(parent07000030, '07000030 should exist');
+                    test.assertDefined(child15000174, '15000174 should exist');
+                    
+                    // Parent calculations should be correct
+                    test.assertEqual(parent07000030.grossRequirement, 100, '07000030 gross requirement');
+                    test.assertEqual(parent07000030.shortfall, 84, '07000030 shortfall (100-16)');
+                    
+                    // CRITICAL: Child should be calculated based on 07000030's shortfall, not 17000364's
+                    test.assertEqual(child15000174.grossRequirement, 924, '15000174 should need 924 (84*11)');
+                    test.assertEqual(child15000174.shortfall, 191, '15000174 should have shortfall 191 (924-733)');
+                    
+                    Object.assign(state, originalState);
+                });
+
+                test.test('Parent-child relationship in sequential BOM order', () => {
+                    const originalState = { ...state };
+                    // Create a simple sequential BOM that mimics the issue
+                    state.bomData = [
+                        createTestBomItem({ componentId: 'PARENT_A', bomLevel: 1, qtyPerAssembly: 1, onHand: 5 }),
+                        createTestBomItem({ componentId: 'PARENT_B', bomLevel: 1, qtyPerAssembly: 1, onHand: 10 }),
+                        createTestBomItem({ componentId: 'CHILD_OF_B', bomLevel: 2, qtyPerAssembly: 3, onHand: 20 })
+                    ];
+                    state.isDataProcessed = false;
+                    
+                    dataProcessor.processInitialData();
+                    dataProcessor.calculateBuildMetrics(15);
+                    
+                    const parentB = state.bomData.find(item => item.componentId === 'PARENT_B');
+                    const childOfB = state.bomData.find(item => item.componentId === 'CHILD_OF_B');
+                    
+                    // Parent B should need 15, has 10, shortfall 5
+                    test.assertEqual(parentB.shortfall, 5, 'PARENT_B shortfall');
+                    
+                    // Child should be based on PARENT_B's shortfall (5), not PARENT_A's
+                    test.assertEqual(childOfB.grossRequirement, 15, 'Child gross should be 15 (5*3)');
+                    test.assertEqual(childOfB.shortfall, 0, 'Child should have no shortfall (15 needed, 20 on hand)');
+                    
+                    Object.assign(state, originalState);
+                });
+
+                test.test('Zero-quantity filtering breaks BOM hierarchy', () => {
+                    // This test demonstrates the exact issue with your BOM calculation
+                    const originalState = { ...state };
+                    
+                    // Simulate CSV data before and after zero-quantity filtering
+                    const csvDataWithZeros = [
+                        createTestBomItem({ componentId: '17000364', bomLevel: 1, qtyPerAssembly: 1, onHand: 64 }),
+                        createTestBomItem({ componentId: 'ZERO_QTY_1', bomLevel: 2, qtyPerAssembly: 0, onHand: 0 }), // Gets filtered out
+                        createTestBomItem({ componentId: '07000030', bomLevel: 1, qtyPerAssembly: 1, onHand: 16 }),
+                        createTestBomItem({ componentId: 'ZERO_QTY_2', bomLevel: 2, qtyPerAssembly: 0, onHand: 0 }), // Gets filtered out  
+                        createTestBomItem({ componentId: '15000174', bomLevel: 2, qtyPerAssembly: 11, onHand: 733 })
+                    ];
+                    
+                    // Before filtering: 15000174 is at index 4, 07000030 is at index 2
+                    const index07000030Before = csvDataWithZeros.findIndex(item => item.componentId === '07000030');
+                    const index15000174Before = csvDataWithZeros.findIndex(item => item.componentId === '15000174');
+                    test.assertEqual(index07000030Before, 2, 'Before filtering: 07000030 at index 2');
+                    test.assertEqual(index15000174Before, 4, 'Before filtering: 15000174 at index 4');
+                    
+                    // After filtering (simulating processInitialData)
+                    const filteredData = csvDataWithZeros.filter(item => item.qtyPerAssembly > 0);
+                    const index07000030After = filteredData.findIndex(item => item.componentId === '07000030');
+                    const index15000174After = filteredData.findIndex(item => item.componentId === '15000174');
+                    
+                    test.assertEqual(index07000030After, 1, 'After filtering: 07000030 at index 1');
+                    test.assertEqual(index15000174After, 2, 'After filtering: 15000174 at index 2');
+                    
+                    // Now when 15000174 searches backwards from index 2:
+                    // - It checks index 1: 07000030 (Level 1) ✓ CORRECT PARENT
+                    // - It should NOT check index 0: 17000364 (Level 1) ❌ WRONG PARENT
+                    
+                    // Test the parent-finding logic on filtered data
+                    const childIndex = index15000174After;
+                    let foundParent = null;
+                    
+                    for (let i = childIndex - 1; i >= 0; i--) {
+                        const potentialParent = filteredData[i];
+                        if (potentialParent.bomLevel === 1) { // Level 2 child looking for Level 1 parent
+                            foundParent = potentialParent;
+                            break;
+                        }
+                    }
+                    
+                    test.assertDefined(foundParent, 'Should find a parent');
+                    test.assertEqual(foundParent.componentId, '07000030', 'Should find 07000030 as parent, not 17000364');
+                    
+                    Object.assign(state, originalState);
+                });
+
+                test.test('Indented BOM parent finding algorithm', () => {
+                    // Test the core algorithm that finds parents in indented BOM
+                    const bomArray = [
+                        { componentId: 'WRONG_PARENT', bomLevel: 1, shortfall: 999 },  // Index 0
+                        { componentId: 'ANOTHER_WRONG', bomLevel: 1, shortfall: 888 }, // Index 1  
+                        { componentId: 'CORRECT_PARENT', bomLevel: 1, shortfall: 50 }, // Index 2
+                        { componentId: 'CHILD_COMPONENT', bomLevel: 2, qtyPerAssembly: 4 } // Index 3
+                    ];
+                    
+                    // Simulate the parent-finding logic
+                    const childIndex = 3;
+                    const currentLevel = bomArray[childIndex].bomLevel;
+                    let foundParent = null;
+                    
+                    // Search backwards for immediate parent (level 1)
+                    for (let i = childIndex - 1; i >= 0; i--) {
+                        const potentialParent = bomArray[i];
+                        if (potentialParent.bomLevel === currentLevel - 1) {
+                            foundParent = potentialParent;
+                            break; // Should find CORRECT_PARENT, not continue to WRONG_PARENT
+                        }
+                    }
+                    
+                    test.assertDefined(foundParent, 'Should find a parent');
+                    test.assertEqual(foundParent.componentId, 'CORRECT_PARENT', 'Should find the immediate preceding parent');
+                    test.assertEqual(foundParent.shortfall, 50, 'Should use correct parent shortfall');
+                });
+
+                test.test('Array order should be preserved across calculations', () => {
+                    const originalState = { ...state };
+                    state.bomData = createSimpleBomData();
+                    state.isDataProcessed = false;
+                    
+                    const initialOrder = state.bomData.map(item => item.componentId);
+                    
+                    dataProcessor.processInitialData();
+                    dataProcessor.calculateBuildMetrics(10);
+                    dataProcessor.calculateBuildMetrics(50);
+                    dataProcessor.calculateBuildMetrics(100);
+                    
+                    const finalOrder = state.bomData.map(item => item.componentId);
+                    test.assertArrayEqual(initialOrder, finalOrder);
+                    
+                    Object.assign(state, originalState);
+                });
+
+                test.test('processInitialData should prevent multiple executions', () => {
+                    const originalState = { ...state };
+                    state.bomData = createSimpleBomData();
+                    state.isDataProcessed = false;
+                    
+                    const originalLength = state.bomData.length;
+                    
+                    dataProcessor.processInitialData();
+                    test.assertTrue(state.isDataProcessed);
+                    const afterFirst = state.bomData.length;
+                    
+                    dataProcessor.processInitialData(); // Should skip
+                    const afterSecond = state.bomData.length;
+                    
+                    test.assertEqual(afterFirst, afterSecond);
+                    
+                    Object.assign(state, originalState);
+                });
+            });
+        }
+
+        function runErrorHandlingTests() {
+            test.suite('Error Handling & Edge Cases', () => {
+                test.test('calculateBaseItemMetrics should handle malformed data gracefully', () => {
+                    const malformedItem = { componentId: 'BAD' };
+                    
+                    // Should handle gracefully without throwing
+                    dataProcessor.calculateBaseItemMetrics(malformedItem);
+                    
+                    // Should set default values
+                    test.assertEqual(malformedItem.qtyPerAssembly, 0);
+                    test.assertEqual(malformedItem.onHand, 0);
+                    test.assertEqual(malformedItem.canBuild, 0);
+                    test.assertEqual(malformedItem.futureBuild, 0);
+                });
+
+                test.test('Functions should handle null/undefined gracefully', () => {
+                    test.assertEqual(utils.sanitizeNumber(null), 0);
+                    test.assertEqual(utils.sanitizeNumber(undefined), 0);
+                    test.assertEqual(utils.sanitizeInteger(null), 0);
+                    // padLeadingZeros converts null to "null" then pads to 5 chars = "0null"
+                    test.assertEqual(utils.padLeadingZeros(null, 5), '0null');
+                });
+
+                test.test('Division by zero should be handled', () => {
+                    const zeroQtyItem = createTestBomItem({ qtyPerAssembly: 0, onHand: 10 });
+                    dataProcessor.calculateBaseItemMetrics(zeroQtyItem);
+                    
+                    test.assertEqual(zeroQtyItem.canBuild, 0);
+                    test.assertEqual(zeroQtyItem.futureBuild, 0);
+                });
+
+                test.test('Empty arrays should be handled gracefully', () => {
+                    const emptyBom = dataProcessor.generateFlatBom([]);
+                    test.assertEqual(emptyBom.length, 0);
+                });
+            });
+        }
+
+        // Main test runners
+        function runAllTests() {
+            test.clear();
+            test.startTime = Date.now();
+            
+            document.getElementById('runAllBtn').disabled = true;
+            test.updateStatus('Starting comprehensive test suite...');
+            
+            // Run all test suites
+            setTimeout(() => runUtilsTests(), 50);
+            setTimeout(() => runDataProcessorTests(), 100);
+            setTimeout(() => runBuildCapacityTests(), 150);
+            setTimeout(() => runBomHierarchyTests(), 200);
+            setTimeout(() => runErrorHandlingTests(), 250);
+            
+            setTimeout(() => {
+                test.renderSummary();
+                document.getElementById('runAllBtn').disabled = false;
+                console.log(`Test run completed: ${test.passedTests}/${test.totalTests} passed`);
+            }, 300);
+        }
+
+        function clearResults() {
+            test.clear();
+        }
+
+        // Individual test runners - wrapper functions for buttons
+        function runUtilsTestsSingle() { 
+            test.clear();
+            test.startTime = Date.now();
+            runUtilsTests(); 
+            setTimeout(() => test.renderSummary(), 100);
+        }
+        
+        function runDataProcessorTestsSingle() { 
+            test.clear();
+            test.startTime = Date.now();
+            runDataProcessorTests(); 
+            setTimeout(() => test.renderSummary(), 100);
+        }
+        
+        function runBuildCapacityTestsSingle() { 
+            test.clear();
+            test.startTime = Date.now();
+            runBuildCapacityTests(); 
+            setTimeout(() => test.renderSummary(), 100);
+        }
+        
+        function runBomHierarchyTestsSingle() { 
+            test.clear();
+            test.startTime = Date.now();
+            runBomHierarchyTests(); 
+            setTimeout(() => test.renderSummary(), 100);
+        }
+        
+        function runErrorHandlingTestsSingle() { 
+            test.clear();
+            test.startTime = Date.now();
+            runErrorHandlingTests(); 
+            setTimeout(() => test.renderSummary(), 100);
+        }
+
+        // Initialize
+        window.onload = function() {
+            if (typeof utils !== 'undefined' && typeof dataProcessor !== 'undefined') {
+                test.updateStatus('✅ All modules loaded successfully. Ready to test!');
+            } else {
+                test.updateStatus('❌ Error loading modules. Check file paths.');
+            }
+        };
+    </script>
+</body>
+</html>

@@ -153,6 +153,7 @@
                 state.filteredData = [];
                 state.maxBuildable = 0;
                 state.maxFutureBuildable = 0;
+                state.isDataProcessed = false; // Reset flag to allow new CSV processing
 
                 // Reset UI elements
                 dom.fileName.textContent = '';

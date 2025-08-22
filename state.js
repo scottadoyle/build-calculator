@@ -19,7 +19,9 @@
             shortfall: null
         },
         // Flag indicating whether the Flat BOM view is active
-        isFlatBom: false
+        isFlatBom: false,
+        // Flag to prevent multiple processInitialData calls that corrupt BOM array order
+        isDataProcessed: false
     };
 
     window.state = state; // Expose state to the global scope for other modules

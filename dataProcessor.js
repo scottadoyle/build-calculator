@@ -6,8 +6,17 @@
     const dataProcessor = {
         // Performs initial data processing steps after CSV parsing is complete.
         processInitialData: () => {
+            // CRITICAL FIX: Prevent multiple calls that corrupt BOM array order
+            if (state.isDataProcessed) {
+                utils.logInfo("BOM data already processed, skipping to prevent array corruption");
+                return;
+            }
+            
             utils.logInfo("Processing BOM data...");
             try {
+                // Multiple instances of the same component are VALID in BOM structures
+                // Components can be used in different assemblies - this is not an error
+
                 // Helper function to parse numbers with thousand separators
                 function parseNumber(value) {
                     if (typeof value === 'string') {
@@ -16,23 +25,52 @@
                     return parseFloat(value);
                 }
         
-                state.bomData = state.bomData.filter(item => item.qtyPerAssembly > 0);
+                // CRITICAL FIX: Store original indices BEFORE filtering to preserve BOM hierarchy
                 state.bomData.forEach((item, index) => {
                     // Parse qtyPerAssembly and itemCost using the helper function
                     item.qtyPerAssembly = parseNumber(item.qtyPerAssembly);
                     item.itemCost = parseNumber(item.itemCost);
-        
-                    dataProcessor.calculateBaseItemMetrics(item);
+                    
+                    // Store original index for parent-child relationship preservation
+                    item.originalIndex = index;
                     item.isMakePart = false;
                     item.totalQty = item.qtyPerAssembly;
-                    item.id = index; // Add an incrementing ID
+                });
+                
+                // NOW filter out zero-quantity items (this changes array indices but we have originalIndex)
+                state.bomData = state.bomData.filter(item => item.qtyPerAssembly > 0);
+                
+                // Calculate metrics on filtered data
+                state.bomData.forEach((item, index) => {
+                    dataProcessor.calculateBaseItemMetrics(item);
+                    item.id = index; // Current filtered index
                 });
                 dataProcessor.calculateOverallMetrics();
                 dataProcessor.determineMakeBuyStatus(); // Add make/buy flag
+                // DIAGNOSTIC: Check bomData after processInitialData processing
+                console.log("=== DIAGNOSTIC: bomData after processInitialData processing ===");
+                console.log(`Total items processed: ${state.bomData.length}`);
+                
+                // Log component instances for key debugging components
+                const debugComponents = ['15000174', '7000030'];
+                debugComponents.forEach(componentId => {
+                    const instances = state.bomData
+                        .map((item, index) => ({ item, index }))
+                        .filter(({ item }) => item.componentId === componentId);
+                    if (instances.length > 0) {
+                        console.log(`Component ${componentId} appears ${instances.length} time(s):`, 
+                            instances.map(({ item, index }) => ({ index, level: item.bomLevel })));
+                    }
+                });
+
                 state.originalBomData = [...state.bomData]; // Store original data
                 state.filteredData = [...state.bomData]; // Initialize filtered data
                 state.totalBuildCapacity = dataProcessor.calculateTotalBuildCapacity(state.bomData); // Calculate total build capacity
                 state.totalFutureBuildCapacity = dataProcessor.calculateTotalFutureBuildCapacity(state.bomData); // Calculate total future build capacity
+                
+                // CRITICAL: Set flag to prevent multiple calls that would corrupt array order
+                state.isDataProcessed = true;
+                
                 utils.logInfo("BOM data processed successfully");
             } catch (error) {
                 utils.logError("Error in processInitialData:", error);
@@ -66,7 +104,7 @@
         },
 
         // Calculates detailed metrics for each BOM item based on the target build quantity,
-        // considering the indented BOM hierarchy.
+        // using correct hierarchical parent-child relationships
         calculateBuildMetrics: (targetBuilds) => {
             let totalInvCost = 0;
             let totalOrderCost = 0;
@@ -82,30 +120,99 @@
                 totalBuildCostValue += (grossRequirement * item.itemCost);
             });
 
-            // Calculate hierarchical requirements for shortfall and ordering
-            const parentNetQtyNeeded = { 0: targetBuilds };
-
+            // CRITICAL FIX: Reset calculation-specific fields to ensure clean state for each calculation
             state.bomData.forEach(item => {
+                delete item.grossRequirement;
+                delete item.shortfall;
+                delete item.orderQty;
+                delete item.costToOrder;
+            });
+
+            // Calculate hierarchical requirements using proper MRP methodology
+            // Process BOM in original order to maintain parent-child relationships
+            
+            // DIAGNOSTIC: Log BOM structure for debugging
+            console.log("=== DIAGNOSTIC: BOM Structure Analysis ===");
+            console.log(`Processing ${state.bomData.length} BOM items`);
+            
+            // Log instances of key components for debugging
+            const debugComponents = ['15000174', '07000030'];
+            debugComponents.forEach(componentId => {
+                const instances = state.bomData
+                    .map((item, index) => ({ item, index }))
+                    .filter(({ item }) => item.componentId === componentId);
+                if (instances.length > 0) {
+                    console.log(`Component ${componentId} found ${instances.length} time(s):`, 
+                        instances.map(({ item, index }) => ({ index, level: item.bomLevel })));
+                }
+            });
+            
+            // Process components in original BOM order (preserves hierarchy)
+            // This maintains the indented BOM structure integrity
+            state.bomData.forEach((item, index) => {
                 const currentLevel = item.bomLevel;
-                const parentLevel = currentLevel - 1;
-
-                const parentRequirement = parentNetQtyNeeded[parentLevel] || 0;
-                const grossRequirement = parentRequirement * item.qtyPerAssembly;
-                const netQtyToBuild = Math.max(0, grossRequirement - item.onHand);
-
-                parentNetQtyNeeded[currentLevel] = netQtyToBuild;
-
+                let parentShortfall = targetBuilds; // Default for level 1 components
+                let parentComponent = 'TOP_LEVEL';
+                
+                // For components at level 2 or higher, find the actual parent
+                if (currentLevel > 1) {
+                    // CRITICAL FIX: Use originalIndex to find parent in correct BOM hierarchy
+                    // Search backwards based on original BOM order, not filtered array order
+                    let parentFound = false;
+                    
+                    const candidateParents = state.bomData.filter(candidateItem => 
+                        candidateItem.originalIndex < item.originalIndex && 
+                        candidateItem.bomLevel === currentLevel - 1
+                    );
+                    
+                    if (candidateParents.length > 0) {
+                        // Get the parent with the highest originalIndex (closest before this component)
+                        const immediateParent = candidateParents.reduce((latest, candidate) => 
+                            candidate.originalIndex > latest.originalIndex ? candidate : latest
+                        );
+                        
+                        parentShortfall = immediateParent.shortfall || 0;
+                        parentComponent = immediateParent.componentId;
+                        parentFound = true;
+                        
+                        if (item.componentId === '15000174') {
+                            console.log(`  FIXED PARENT FINDING: Found ${parentComponent} (originalIndex: ${immediateParent.originalIndex}) for ${item.componentId} (originalIndex: ${item.originalIndex})`);
+                            console.log(`  Parent shortfall: ${parentShortfall}`);
+                        }
+                    }
+                    
+                    if (!parentFound) {
+                        console.warn(`Warning: No parent found for ${item.componentId} at level ${currentLevel}`);
+                        // Fallback to top-level requirement if no parent found
+                        parentShortfall = targetBuilds;
+                        parentComponent = 'TOP_LEVEL_FALLBACK';
+                    }
+                }
+                
+                // Calculate this component's requirements based on parent's shortfall
+                const grossRequirement = parentShortfall * item.qtyPerAssembly;
+                const componentShortfall = Math.max(0, grossRequirement - item.onHand);
+                
+                // Store calculated values directly on the item
                 item.grossRequirement = grossRequirement;
-                item.shortfall = netQtyToBuild;
-
-                if (item.shortfall > 0) {
-                    item.orderQty = Math.ceil(item.shortfall / item.minOrderQty) * item.minOrderQty;
+                item.shortfall = componentShortfall;
+                
+                // Debug trace for key components
+                if (item.componentId === '07000030' || item.componentId === '15000174') {
+                    console.log(`SEQUENTIAL: ${item.componentId} at Level ${currentLevel}, Index ${index}`);
+                    console.log(`  Parent: ${parentComponent}, Parent shortfall: ${parentShortfall}`);
+                    console.log(`  Gross needed: ${grossRequirement}, On hand: ${item.onHand}, Shortfall: ${componentShortfall}`);
+                }
+                
+                // Calculate order quantities and costs
+                if (componentShortfall > 0) {
+                    item.orderQty = Math.ceil(componentShortfall / item.minOrderQty) * item.minOrderQty;
                 } else {
                     item.orderQty = 0;
                 }
-
+                
                 item.costToOrder = item.orderQty * item.itemCost;
-
+                
                 totalInvCost += (item.onHand * item.itemCost);
                 totalOrderCost += (item.onOrder * item.itemCost);
                 if (!item.isMakePart) {

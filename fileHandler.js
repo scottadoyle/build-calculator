@@ -84,11 +84,35 @@
                 const validRows = results.data.filter(row => Object.keys(row).length === headerCount);
 
                 // Map the valid rows to the internal data structure and filter out any null values
-                state.bomData = validRows.map(fileHandler.mapCsvRow).filter(item => item !== null);
+                let rawBomData = validRows.map(fileHandler.mapCsvRow).filter(item => item !== null);
+
+                // Multiple instances of components are VALID in BOM structures
+                // Components can appear in different assemblies - do not deduplicate
+                state.bomData = rawBomData;
 
                 if (state.bomData.length === 0) {
                     throw new Error('No valid BOM data found in CSV. Check required columns and ensure quantities are not zero.');
                 }
+
+                // DIAGNOSTIC: Check for duplicates immediately after CSV parsing
+                console.log("=== DIAGNOSTIC: Checking for duplicates after CSV parsing ===");
+                const csvComponentCounts = {};
+                state.bomData.forEach((item, index) => {
+                    if (!csvComponentCounts[item.componentId]) {
+                        csvComponentCounts[item.componentId] = [];
+                    }
+                    csvComponentCounts[item.componentId].push({index, level: item.bomLevel});
+                });
+                
+                // Log any duplicates found in CSV parsing
+                Object.keys(csvComponentCounts).forEach(componentId => {
+                    if (csvComponentCounts[componentId].length > 1) {
+                        console.warn(`CSV DUPLICATE FOUND: ${componentId} appears ${csvComponentCounts[componentId].length} times:`, csvComponentCounts[componentId]);
+                    }
+                    if (componentId === '15000174') {
+                        console.log(`CSV: Component 15000174 appears at:`, csvComponentCounts[componentId]);
+                    }
+                });
 
                 utils.logInfo(`Successfully parsed CSV with ${state.bomData.length} items`);
                 if (state.bomData.length > 0) {
