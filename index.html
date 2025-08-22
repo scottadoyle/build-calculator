@@ -107,7 +107,7 @@
 				</div>
 
                 
-                <div id="summaryCards" class="hidden grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div id="summaryCards" class="hidden grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
                     <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
                         <div class="flex items-center justify-between">
                             <div>
@@ -138,6 +138,18 @@
                             </div>
                             <div class="p-2 rounded-full bg-yellow-100 text-yellow-600">
                                 <i class="fas fa-shopping-cart"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Net Additional Cost <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="netAdditionalCost"></i></p>
+                                <p class="text-2xl font-semibold text-gray-800" id="netAdditionalCost">$0</p>
+                                <p class="text-xs text-gray-500">After considering open orders</p>
+                            </div>
+                            <div class="p-2 rounded-full bg-indigo-100 text-indigo-600">
+                                <i class="fas fa-cart-plus"></i>
                             </div>
                         </div>
                     </div>
@@ -183,6 +195,7 @@
                                         <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Can Build <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="canBuild"></i></th>
                                         <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Future Build <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="futureBuildTable"></i></th>
                                         <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Net Qty Needed <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="netQtyNeeded"></i></th>
+                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Net Add'l Needed <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="netAdditionalQtyNeeded"></i></th>
                                         <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Min. Order Qty <i class="fas fa-question-circle text-gray-400 ml-1"></i></th>
                                         <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Order Qty <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="orderQty"></i></th>
                                         <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Cost to Order <i class="fas fa-question-circle help-icon text-gray-400 ml-1" data-help-key="costToOrder"></i></th>

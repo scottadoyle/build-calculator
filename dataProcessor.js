@@ -109,6 +109,7 @@
             let totalInvCost = 0;
             let totalOrderCost = 0;
             let totalAdditionalCost = 0;
+            let totalNetAdditionalCost = 0;
             let totalBuildCostValue = 0;
 
             // Create a flat BOM for cost calculation to avoid hierarchical compounding
@@ -197,14 +198,28 @@
                 item.grossRequirement = grossRequirement;
                 item.shortfall = componentShortfall;
                 
+                // NEW FEATURE: Calculate Net Additional Orders Needed (considering both onHand and onOrder)
+                const netAdditionalQtyNeeded = Math.max(0, grossRequirement - (item.onHand + item.onOrder));
+                item.netAdditionalQtyNeeded = netAdditionalQtyNeeded;
+                
+                if (netAdditionalQtyNeeded > 0) {
+                    const minOrderQty = Math.max(1, item.minOrderQty || 1);
+                    item.netAdditionalOrderQty = Math.ceil(netAdditionalQtyNeeded / minOrderQty) * minOrderQty;
+                } else {
+                    item.netAdditionalOrderQty = 0;
+                }
+                
+                item.netAdditionalCost = item.netAdditionalOrderQty * item.itemCost;
+                
                 // Debug trace for key components
                 if (item.componentId === '07000030' || item.componentId === '15000174') {
                     console.log(`SEQUENTIAL: ${item.componentId} at Level ${currentLevel}, Index ${index}`);
                     console.log(`  Parent: ${parentComponent}, Parent shortfall: ${parentShortfall}`);
                     console.log(`  Gross needed: ${grossRequirement}, On hand: ${item.onHand}, Shortfall: ${componentShortfall}`);
+                    console.log(`  Net additional needed: ${netAdditionalQtyNeeded} (considering ${item.onOrder} on order)`);
                 }
                 
-                // Calculate order quantities and costs
+                // Calculate order quantities and costs (existing logic)
                 if (componentShortfall > 0) {
                     item.orderQty = Math.ceil(componentShortfall / item.minOrderQty) * item.minOrderQty;
                 } else {
@@ -217,6 +232,7 @@
                 totalOrderCost += (item.onOrder * item.itemCost);
                 if (!item.isMakePart) {
                     totalAdditionalCost += item.costToOrder;
+                    totalNetAdditionalCost += item.netAdditionalCost;
                 }
             });
 
@@ -226,6 +242,7 @@
                 totalInvCost,
                 totalOrderCost,
                 totalAdditionalCost,
+                totalNetAdditionalCost,
                 totalBuildCostValue
             };
         },

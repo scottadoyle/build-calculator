@@ -156,6 +156,8 @@
             <button onclick="runBuildCapacityTestsSingle()">🏗️ Build Capacity</button>
             <button onclick="runBomHierarchyTestsSingle()">🔗 BOM Hierarchy</button>
             <button onclick="runErrorHandlingTestsSingle()">⚠️ Error Handling</button>
+            <button onclick="runUITestsSingle()">🎨 UI Components</button>
+            <button onclick="runNetAdditionalOrdersTestsSingle()">💰 Net Additional Orders</button>
             <button onclick="clearResults()">🗑️ Clear Results</button>
         </div>
         <div class="progress-bar">
@@ -563,6 +565,56 @@
                     
                     state.bomData = originalBomData; // Restore
                 });
+
+                test.test('calculateBuildMetrics should return all required metrics including Net Additional Orders', () => {
+                    // Set up test data with known values
+                    const originalBomData = state.bomData;
+                    state.bomData = [
+                        createTestBomItem({
+                            componentId: 'A001',
+                            qtyPerAssembly: 2,
+                            onHand: 10,
+                            onOrder: 5,
+                            itemCost: 15.00,
+                            minOrderQty: 10,
+                            isMakePart: false
+                        }),
+                        createTestBomItem({
+                            componentId: 'A002',
+                            qtyPerAssembly: 3,
+                            onHand: 8,
+                            onOrder: 2,
+                            itemCost: 25.50,
+                            minOrderQty: 5,
+                            isMakePart: false
+                        })
+                    ];
+
+                    const targetBuilds = 5;
+                    const metrics = dataProcessor.calculateBuildMetrics(targetBuilds);
+
+                    // Validate all expected properties exist
+                    test.assertTrue('totalInvCost' in metrics, 'Should include totalInvCost');
+                    test.assertTrue('totalOrderCost' in metrics, 'Should include totalOrderCost');
+                    test.assertTrue('totalAdditionalCost' in metrics, 'Should include totalAdditionalCost');
+                    test.assertTrue('totalNetAdditionalCost' in metrics, 'Should include totalNetAdditionalCost');
+                    test.assertTrue('totalBuildCostValue' in metrics, 'Should include totalBuildCostValue');
+
+                    // Validate numeric types
+                    test.assertType(metrics.totalInvCost, 'number');
+                    test.assertType(metrics.totalOrderCost, 'number');
+                    test.assertType(metrics.totalAdditionalCost, 'number');
+                    test.assertType(metrics.totalNetAdditionalCost, 'number');
+                    test.assertType(metrics.totalBuildCostValue, 'number');
+
+                    // Validate that new Net Additional Orders metric is properly calculated
+                    // Component A001: needs 10 total (5*2), has 15 available (10+5), so 0 net additional
+                    // Component A002: needs 15 total (5*3), has 10 available (8+2), so 5 net additional
+                    const expectedNetAdditionalCost = 5 * 25.50; // 5 units at $25.50 each = $127.50
+                    test.assertAlmostEqual(metrics.totalNetAdditionalCost, expectedNetAdditionalCost, 0.01, 'Net Additional Cost calculation');
+
+                    state.bomData = originalBomData; // Restore
+                });
             });
         }
 
@@ -837,6 +889,295 @@
             });
         }
 
+        function runUITests() {
+            test.suite('UI Components & Bug Fixes', () => {
+                test.test('Flat BOM column bug fix - updateBomTable parameter passing', () => {
+                    // Test that uiUpdater.updateDashboardView properly passes isFlatBom parameter
+                    const originalState = { ...state };
+                    
+                    // Mock DOM elements that updateDashboardView needs
+                    const originalTargetBuilds = dom.targetBuilds;
+                    const originalTotalInventoryCost = dom.totalInventoryCost;
+                    const originalOpenOrderCost = dom.openOrderCost;
+                    const originalAdditionalCost = dom.additionalCost;
+                    const originalNetAdditionalCost = dom.netAdditionalCost;
+                    const originalTotalBuildCost = dom.totalBuildCost;
+                    const originalTotalBuildableCount = dom.totalBuildableCount;
+                    
+                    // Create mock DOM elements
+                    dom.targetBuilds = { value: '10' };
+                    dom.totalInventoryCost = { textContent: '' };
+                    dom.openOrderCost = { textContent: '' };
+                    dom.additionalCost = { textContent: '' };
+                    dom.netAdditionalCost = { textContent: '' };
+                    dom.totalBuildCost = { textContent: '' };
+                    dom.totalBuildableCount = { textContent: '' };
+                    
+                    // Mock the updateBomTable function to track parameters
+                    let calledWithFlatBom = null;
+                    const originalUpdateBomTable = uiUpdater.updateBomTable;
+                    uiUpdater.updateBomTable = function(target, isFlatBom) {
+                        calledWithFlatBom = isFlatBom;
+                        // Don't actually update the table in test
+                    };
+                    
+                    // Mock chartManager to prevent chart rendering
+                    const originalDebouncedRenderCharts = chartManager.debouncedRenderCharts;
+                    chartManager.debouncedRenderCharts = function() {
+                        // Do nothing in test
+                    };
+                    
+                    try {
+                        // Test Flat BOM mode
+                        state.isFlatBom = true;
+                        if (typeof uiUpdater.updateDashboardView === 'function') {
+                            uiUpdater.updateDashboardView();
+                            test.assertTrue(calledWithFlatBom, 'updateBomTable should be called with isFlatBom=true when in Flat BOM mode');
+                        }
+                        
+                        // Test Indented BOM mode
+                        state.isFlatBom = false;
+                        calledWithFlatBom = null;
+                        if (typeof uiUpdater.updateDashboardView === 'function') {
+                            uiUpdater.updateDashboardView();
+                            test.assertEqual(calledWithFlatBom, false, 'updateBomTable should be called with isFlatBom=false when in Indented BOM mode');
+                        }
+                        
+                    } finally {
+                        // Restore original functions and DOM elements
+                        uiUpdater.updateBomTable = originalUpdateBomTable;
+                        chartManager.debouncedRenderCharts = originalDebouncedRenderCharts;
+                        dom.targetBuilds = originalTargetBuilds;
+                        dom.totalInventoryCost = originalTotalInventoryCost;
+                        dom.openOrderCost = originalOpenOrderCost;
+                        dom.additionalCost = originalAdditionalCost;
+                        dom.netAdditionalCost = originalNetAdditionalCost;
+                        dom.totalBuildCost = originalTotalBuildCost;
+                        dom.totalBuildableCount = originalTotalBuildableCount;
+                        Object.assign(state, originalState);
+                    }
+                });
+
+                test.test('State isFlatBom flag should control BOM view mode', () => {
+                    // Test that the state flag correctly controls view mode
+                    const originalState = { ...state };
+                    
+                    // Test default state
+                    test.assertType(state.isFlatBom, 'boolean', 'isFlatBom should be a boolean');
+                    
+                    // Test state changes
+                    state.isFlatBom = true;
+                    test.assertTrue(state.isFlatBom, 'isFlatBom should be settable to true');
+                    
+                    state.isFlatBom = false;
+                    test.assertFalse(state.isFlatBom, 'isFlatBom should be settable to false');
+                    
+                    Object.assign(state, originalState);
+                });
+            });
+        }
+
+        function runNetAdditionalOrdersTests() {
+            test.suite('Net Additional Orders Feature', () => {
+                test.test('Net Additional Orders calculation should consider onHand + onOrder', () => {
+                    const originalState = { ...state };
+                    state.bomData = [
+                        createTestBomItem({ 
+                            componentId: 'TEST001', 
+                            qtyPerAssembly: 1, 
+                            onHand: 10, 
+                            onOrder: 15,
+                            itemCost: 5.00
+                        })
+                    ];
+                    
+                    state.isDataProcessed = false;
+                    dataProcessor.processInitialData();
+                    
+                    // Test for build quantity of 30
+                    dataProcessor.calculateBuildMetrics(30);
+                    
+                    const item = state.bomData[0];
+                    
+                    // Traditional shortfall: 30 - 10 = 20
+                    test.assertEqual(item.shortfall, 20, 'Traditional shortfall should be 20');
+                    
+                    // Net additional needed: 30 - (10 + 15) = 5
+                    test.assertEqual(item.netAdditionalQtyNeeded, 5, 'Net additional needed should be 5');
+                    test.assertEqual(item.netAdditionalOrderQty, 5, 'Net additional order qty should be 5');
+                    test.assertEqual(item.netAdditionalCost, 25, 'Net additional cost should be $25 (5 * $5)');
+                    
+                    Object.assign(state, originalState);
+                });
+
+                test.test('Net Additional Orders should be zero when onHand + onOrder covers requirement', () => {
+                    const originalState = { ...state };
+                    state.bomData = [
+                        createTestBomItem({ 
+                            componentId: 'TEST002', 
+                            qtyPerAssembly: 1, 
+                            onHand: 20, 
+                            onOrder: 30,
+                            itemCost: 2.50
+                        })
+                    ];
+                    
+                    state.isDataProcessed = false;
+                    dataProcessor.processInitialData();
+                    
+                    // Test for build quantity of 40 (covered by 20 + 30 = 50)
+                    dataProcessor.calculateBuildMetrics(40);
+                    
+                    const item = state.bomData[0];
+                    
+                    // Traditional shortfall: 40 - 20 = 20
+                    test.assertEqual(item.shortfall, 20, 'Traditional shortfall should be 20');
+                    
+                    // Net additional needed: 40 - (20 + 30) = -10, max(0, -10) = 0
+                    test.assertEqual(item.netAdditionalQtyNeeded, 0, 'Net additional needed should be 0');
+                    test.assertEqual(item.netAdditionalOrderQty, 0, 'Net additional order qty should be 0');
+                    test.assertEqual(item.netAdditionalCost, 0, 'Net additional cost should be $0');
+                    
+                    Object.assign(state, originalState);
+                });
+
+                test.test('Net Additional Orders should respect minimum order quantities', () => {
+                    const originalState = { ...state };
+                    state.bomData = [
+                        createTestBomItem({ 
+                            componentId: 'TEST003', 
+                            qtyPerAssembly: 1, 
+                            onHand: 5, 
+                            onOrder: 10,
+                            minOrderQty: 25,
+                            itemCost: 1.00
+                        })
+                    ];
+                    
+                    state.isDataProcessed = false;
+                    dataProcessor.processInitialData();
+                    
+                    // Test for build quantity of 20
+                    // Net needed: 20 - (5 + 10) = 5
+                    // But min order qty is 25, so should order 25
+                    dataProcessor.calculateBuildMetrics(20);
+                    
+                    const item = state.bomData[0];
+                    
+                    test.assertEqual(item.netAdditionalQtyNeeded, 5, 'Net additional needed should be 5');
+                    test.assertEqual(item.netAdditionalOrderQty, 25, 'Net additional order qty should be 25 (min order qty)');
+                    test.assertEqual(item.netAdditionalCost, 25, 'Net additional cost should be $25 (25 * $1)');
+                    
+                    Object.assign(state, originalState);
+                });
+
+                test.test('Total Net Additional Cost should aggregate correctly across components', () => {
+                    const originalState = { ...state };
+                    state.bomData = [
+                        createTestBomItem({ 
+                            componentId: 'COMP001', 
+                            bomLevel: 1,
+                            qtyPerAssembly: 2, 
+                            onHand: 10, 
+                            onOrder: 5,
+                            itemCost: 3.00,
+                            isMakePart: false
+                        }),
+                        createTestBomItem({ 
+                            componentId: 'COMP002', 
+                            bomLevel: 1,
+                            qtyPerAssembly: 1, 
+                            onHand: 8, 
+                            onOrder: 12,
+                            itemCost: 4.00,
+                            isMakePart: false
+                        }),
+                        createTestBomItem({ 
+                            componentId: 'MAKE001', 
+                            bomLevel: 1,
+                            qtyPerAssembly: 1, 
+                            onHand: 5, 
+                            onOrder: 0,
+                            itemCost: 10.00,
+                            isMakePart: true
+                        })
+                    ];
+                    
+                    state.isDataProcessed = false;
+                    dataProcessor.processInitialData();
+                    
+                    // Ensure make/buy status is preserved after processing
+                    const make001AfterProcess = state.bomData.find(item => item.componentId === 'MAKE001');
+                    make001AfterProcess.isMakePart = true; // Restore after determineMakeBuyStatus potentially overwrites
+                    
+                    const metrics = dataProcessor.calculateBuildMetrics(15);
+                    
+                    const comp001 = state.bomData.find(item => item.componentId === 'COMP001');
+                    const comp002 = state.bomData.find(item => item.componentId === 'COMP002');
+                    const make001 = state.bomData.find(item => item.componentId === 'MAKE001');
+                    
+                    // COMP001: need 30 (15*2), have 15 (10+5), need additional 15, cost $45
+                    test.assertEqual(comp001.netAdditionalQtyNeeded, 15, 'COMP001 net additional needed');
+                    test.assertEqual(comp001.netAdditionalCost, 45, 'COMP001 net additional cost');
+                    
+                    // COMP002: need 15 (15*1), have 20 (8+12), need additional 0, cost $0
+                    test.assertEqual(comp002.netAdditionalQtyNeeded, 0, 'COMP002 net additional needed');
+                    test.assertEqual(comp002.netAdditionalCost, 0, 'COMP002 net additional cost');
+                    
+                    // MAKE001: should have net additional cost but not included in total (make parts excluded)
+                    test.assertEqual(make001.netAdditionalQtyNeeded, 10, 'MAKE001 net additional needed');
+                    test.assertEqual(make001.netAdditionalCost, 100, 'MAKE001 net additional cost');
+                    
+                    // Total should only include buy parts: $45 + $0 = $45 (excludes make part)
+                    // Debug the actual values
+                    console.log('Debug Net Additional Cost Test:');
+                    console.log('COMP001 net cost:', comp001.netAdditionalCost);
+                    console.log('COMP002 net cost:', comp002.netAdditionalCost);
+                    console.log('MAKE001 net cost:', make001.netAdditionalCost);
+                    console.log('Total:', metrics.totalNetAdditionalCost);
+                    test.assertEqual(metrics.totalNetAdditionalCost, 45, 'Total net additional cost should exclude make parts');
+                    
+                    Object.assign(state, originalState);
+                });
+
+                test.test('Net Additional Orders vs Traditional Additional Cost comparison', () => {
+                    const originalState = { ...state };
+                    state.bomData = [
+                        createTestBomItem({ 
+                            componentId: 'EXAMPLE', 
+                            qtyPerAssembly: 1, 
+                            onHand: 30, 
+                            onOrder: 40,
+                            itemCost: 2.00,
+                            isMakePart: false
+                        })
+                    ];
+                    
+                    state.isDataProcessed = false;
+                    dataProcessor.processInitialData();
+                    
+                    const metrics = dataProcessor.calculateBuildMetrics(100);
+                    
+                    const item = state.bomData[0];
+                    
+                    // Traditional: need 100, have 30, shortfall 70, cost $140
+                    test.assertEqual(item.shortfall, 70, 'Traditional shortfall');
+                    test.assertEqual(item.costToOrder, 140, 'Traditional cost to order');
+                    test.assertEqual(metrics.totalAdditionalCost, 140, 'Traditional total additional cost');
+                    
+                    // Net Additional: need 100, have 70 (30+40), additional 30, cost $60
+                    test.assertEqual(item.netAdditionalQtyNeeded, 30, 'Net additional needed');
+                    test.assertEqual(item.netAdditionalCost, 60, 'Net additional cost');
+                    test.assertEqual(metrics.totalNetAdditionalCost, 60, 'Total net additional cost');
+                    
+                    // Net should be less than traditional when there are open orders
+                    test.assertLessThan(metrics.totalNetAdditionalCost, metrics.totalAdditionalCost, 'Net cost should be less than traditional when open orders exist');
+                    
+                    Object.assign(state, originalState);
+                });
+            });
+        }
+
         // Main test runners
         function runAllTests() {
             test.clear();
@@ -851,6 +1192,8 @@
             setTimeout(() => runBuildCapacityTests(), 150);
             setTimeout(() => runBomHierarchyTests(), 200);
             setTimeout(() => runErrorHandlingTests(), 250);
+            setTimeout(() => runUITests(), 300);
+            setTimeout(() => runNetAdditionalOrdersTests(), 350);
             
             setTimeout(() => {
                 test.renderSummary();
@@ -896,6 +1239,20 @@
             test.clear();
             test.startTime = Date.now();
             runErrorHandlingTests(); 
+            setTimeout(() => test.renderSummary(), 100);
+        }
+        
+        function runUITestsSingle() { 
+            test.clear();
+            test.startTime = Date.now();
+            runUITests(); 
+            setTimeout(() => test.renderSummary(), 100);
+        }
+        
+        function runNetAdditionalOrdersTestsSingle() { 
+            test.clear();
+            test.startTime = Date.now();
+            runNetAdditionalOrdersTests(); 
             setTimeout(() => test.renderSummary(), 100);
         }
 

@@ -35,11 +35,12 @@
             dom.totalInventoryCost.textContent = utils.formatCurrency(metrics.totalInvCost);
             dom.openOrderCost.textContent = utils.formatCurrency(metrics.totalOrderCost);
             dom.additionalCost.textContent = utils.formatCurrency(metrics.totalAdditionalCost);
+            dom.netAdditionalCost.textContent = utils.formatCurrency(metrics.totalNetAdditionalCost);
             // Display calculated metrics in the summary cards
             dom.totalBuildCost.textContent = utils.formatCurrency(metrics.totalBuildCostValue);
 
             // Update BOM table display with calculated values
-            uiUpdater.updateBomTable(target);
+            uiUpdater.updateBomTable(target, state.isFlatBom);
 
             // Update charts (debounced to prevent rapid redraws)
             chartManager.debouncedRenderCharts(target);
@@ -75,6 +76,7 @@
             const isSufficient = item.canBuild >= targetBuilds;
             const isFutureSufficient = item.futureBuild >= targetBuilds;
             const hasShortfall = item.shortfall > 0;
+            const hasNetShortfall = item.netAdditionalQtyNeeded > 0;
             const needsOrder = item.orderQty > 0;
             const hasOrderCost = item.costToOrder > 0;
 
@@ -97,6 +99,7 @@
                 <td class="px-6 py-3 whitespace-nowrap text-sm ${isSufficient ? 'text-green-600' : 'text-red-600'} text-right">${utils.formatNumber(item.canBuild)}</td>
                 <td class="px-6 py-3 whitespace-nowrap text-sm ${isFutureSufficient ? 'text-green-600' : 'text-red-600'} text-right">${utils.formatNumber(item.futureBuild)}</td>
                 <td class="px-6 py-3 whitespace-nowrap text-sm ${hasShortfall ? 'text-red-600 font-medium' : 'text-gray-500'} text-right">${hasShortfall ? utils.formatNumber(item.shortfall) : '-'}</td>
+                <td class="px-6 py-3 whitespace-nowrap text-sm ${hasNetShortfall ? 'text-purple-600 font-medium' : 'text-gray-500'} text-right">${hasNetShortfall ? utils.formatNumber(item.netAdditionalQtyNeeded) : '-'}</td>
                 <td class="px-6 py-3 whitespace-nowrap text-sm text-gray-500 text-right">${utils.formatNumber(item.minOrderQty)}</td>
                 <td class="px-6 py-3 whitespace-nowrap text-sm ${needsOrder ? 'text-orange-600 font-medium' : 'text-gray-500'} text-right">${needsOrder ? utils.formatNumber(item.orderQty) : '-'}</td>
                 <td class="px-6 py-3 whitespace-nowrap text-sm ${hasOrderCost && !item.isMakePart ? 'text-red-600 font-medium' : 'text-gray-500'} text-right">${(item.isMakePart ? '-' : (hasOrderCost ? utils.formatCurrency(item.costToOrder).split('.')[0] : '-'))}</td>

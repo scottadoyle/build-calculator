@@ -38,6 +38,8 @@
         openOrderCost: document.getElementById('openOrderCost'),
         // Additional cost display element
         additionalCost: document.getElementById('additionalCost'),
+        // Net additional cost display element
+        netAdditionalCost: document.getElementById('netAdditionalCost'),
         // Total build cost display element
         totalBuildCost: document.getElementById('totalBuildCost'),
         // Search BOM input element
